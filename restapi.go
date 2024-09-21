@@ -11,11 +11,36 @@ import (
 )
 
 func index(w http.ResponseWriter, r *http.Request) {
+	log.Println(r.Header)
+	log.Println(r.Body)
 	fmt.Fprintf(w, "Hello World!")
 }
 
 func login(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Login")
+}
+
+func getTodos(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// Query all todos
+		rows, err := db.Query("SELECT * FROM todos")
+		if err != nil {
+			log.Fatal(err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+		defer rows.Close()
+		// Loop through rows and process the data
+		for rows.Next() {
+			var id int
+			var title string
+			var completed bool
+			if err := rows.Scan(&id, &title, &completed); err != nil {
+				log.Fatal(err)
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+			}
+			fmt.Fprintf(w, "ID: %d, Title: %s, Completed: %t\n", id, title, completed)
+		}
+	}
 }
 
 func getUsers(db *sql.DB) http.HandlerFunc {
@@ -32,7 +57,8 @@ func getUsers(db *sql.DB) http.HandlerFunc {
 			var id int
 			var name string
 			var email string
-			if err := rows.Scan(&id, &name, &email); err != nil {
+			var password string
+			if err := rows.Scan(&id, &name, &email, &password); err != nil {
 				log.Fatal(err)
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 			}
@@ -54,7 +80,7 @@ func handleRequests(db *sql.DB) {
 
 func main() {
 	// Connect to database
-	connStr := "user=gotodoapp password=znoi4WfR6 dbname=gotodoapp sslmode=disable hostname=192.168.178.73 port=5432"
+	connStr := "postgres://gotodoapp:znoi4WfR6@192.168.178.73:5432/gotodo?sslmode=disable"
 	db, err := sql.Open("postgres", connStr)
 	if err != nil {
 		log.Fatal(err)
