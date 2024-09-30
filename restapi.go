@@ -11,6 +11,7 @@ import (
 	"log"
 	mathrand "math/rand"
 	"net/http"
+	"runtime"
 
 	"github.com/gorilla/mux"
 	_ "github.com/lib/pq"
@@ -224,8 +225,16 @@ func handleRequests(db *sql.DB) {
 }
 
 func main() {
-	// Connect to database
-	connStr := "postgres://gotodoapp:znoi4WfR6@192.168.178.73:5432/gotodo?sslmode=disable"
+	// Connect to database (on windows with local ip, on mac routed through tailscale vpn
+	os := runtime.GOOS
+	var ipStr string
+	switch os {
+	case "windows":
+		ipStr = "192.168.178.73"
+	case "darwin":
+		ipStr = "100.96.62.40"
+	}
+	connStr := "postgres://gotodoapp:znoi4WfR6@" + ipStr + ":5432/gotodo?sslmode=disable"
 	db, err := sql.Open("postgres", connStr)
 	if err != nil {
 		log.Fatal(err)
